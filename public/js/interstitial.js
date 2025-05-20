@@ -11,12 +11,10 @@ const totalStepsEl = document.getElementById('total-steps');
 const postTitleEl = document.getElementById('post-title');
 const postContentEl = document.getElementById('post-content');
 const countdownEl = document.getElementById('countdown');
-const nextBtn = document.getElementById('next-btn');
 const continueBtn = document.getElementById('continue-btn');
 const getLinkBtn = document.getElementById('get-link-btn');
 const infoText = document.getElementById('info-text');
 
-// Sample blog posts
 const defaultPosts = [
   { title: "AI in 2025", content: "Explore how artificial intelligence is reshaping the world—from automation to creativity." },
   { title: "Top Travel Escapes", content: "Unwind with the most stunning destinations to explore this year, handpicked for adventurers." },
@@ -36,7 +34,6 @@ async function fetchBlogPosts() {
   updateBlogPost();
 }
 
-// Update blog post content
 function updateBlogPost() {
   const post = blogPosts[Math.floor(Math.random() * blogPosts.length)];
   postTitleEl.textContent = post.title;
@@ -46,26 +43,22 @@ function updateBlogPost() {
   infoText.textContent = `${totalSteps - currentStep} steps left out of ${totalSteps}`;
 }
 
-// Start countdown
 function startCountdown() {
   countdown = 10;
   countdownEl.textContent = countdown;
+  continueBtn.style.display = 'none';
+  getLinkBtn.style.display = 'none';
   infoText.textContent = `Step ${currentStep} of ${totalSteps}`;
 
-  nextBtn.style.display = 'none';
-  continueBtn.style.display = 'none';
   clearInterval(countdownInterval);
-
   countdownInterval = setInterval(() => {
     countdown--;
     countdownEl.textContent = countdown;
 
     if (countdown <= 0) {
       clearInterval(countdownInterval);
-      nextBtn.style.display = 'inline-block';
       infoText.textContent = "Refer to the bottom to continue.";
       if (currentStep === totalSteps) {
-        continueBtn.style.display = 'none';
         getLinkBtn.style.display = 'block';
       } else {
         continueBtn.style.display = 'inline-block';
@@ -74,21 +67,15 @@ function startCountdown() {
   }, 1000);
 }
 
-// Next button click
-nextBtn.addEventListener('click', () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// Continue button click
 continueBtn.addEventListener('click', () => {
   if (currentStep < totalSteps) {
     currentStep++;
     updateBlogPost();
     startCountdown();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
 
-// Get Link
 getLinkBtn.addEventListener('click', async () => {
   try {
     const response = await fetch(`/api/resolve/${shortCode}`);
@@ -105,9 +92,7 @@ getLinkBtn.addEventListener('click', async () => {
   }
 });
 
-// Init
 function init() {
-  nextBtn.style.display = 'none';
   continueBtn.style.display = 'none';
   getLinkBtn.style.display = 'none';
   fetchBlogPosts();
