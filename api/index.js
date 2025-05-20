@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import fs from 'fs/promises';
+import ejs from 'ejs';
+import expressLayouts from 'express-ejs-layouts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +17,9 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
+app.use(expressLayouts);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '../public/views'));
 
 // CORS middleware
 app.use((req, res, next) => {
@@ -228,6 +233,12 @@ app.post('/api/shorten', authenticate, async (req, res) => {
       lastAccessed: null
     });
     
+    // Initialize step tracking
+    await set(ref(db, `userSteps/${req.user.uid}_${shortCode}`), {
+      step: 1,
+      timestamp: Date.now()
+    });
+    
     res.json({ 
       shortUrl,
       shortCode,
@@ -321,11 +332,10 @@ app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
 // Get Blog Post IDs
 app.get('/api/blog-posts/ids', async (req, res) => {
   try {
-    const postsDir = path.join(__dirname, '../public/posts');
-    const files = await fs.readdir(postsDir);
-    const postIds = files
-      .filter(file => file.endsWith('.html'))
-      .map(file => path.basename(file, '.html'));
+    const postsRef = ref(db, 'blogPosts');
+    const snapshot = await get(postsRef);
+    const posts = snapshot.val() || {};
+    const postIds = Object.keys(posts);
     res.json(postIds);
   } catch (error) {
     console.error('Blog post IDs error:', error);
@@ -333,7 +343,23 @@ app.get('/api/blog-posts/ids', async (req, res) => {
   }
 });
 
-// Interstitial Page - Redirect to Blog Post
+// Get Blog Post
+app.get('/api/blog-posts/:postId', async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const postRef = ref(db, `blogPosts/${postId}`);
+    const snapshot = await get(postRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: 'Blog post not found' });
+    }
+    res.json(snapshot.val());
+  } catch (error) {
+    console.error('Blog post error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Interstitial Page
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
@@ -341,28 +367,39 @@ app.get('/:shortCode', async (req, res) => {
     const snapshot = await get(ref(db, `urls/${shortCode}`));
     if (!snapshot.exists()) {
       console.log(`Short URL not found: ${shortCode}`);
-      return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+      return res.render('404', { error: 'Short URL not found' });
     }
     
-    const postsDir = path.join(__dirname, '../public/posts');
-    const files = await fs.readdir(postsDir);
-    const postIds = files
-      .filter(file => file.endsWith('.html'))
-      .map(file => path.basename(file, '.html'));
+    const postsRef = ref(db, 'blogPosts');
+    const postsSnapshot = await get(postsRef);
+    const posts = postsSnapshot.val() || {};
+    const postIds = Object.keys(posts);
     
     if (postIds.length === 0) {
-      console.log('No blog posts found in public/posts/');
-      return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+      console.log('No blog posts found');
+      return res.render('404', { error: 'No blog posts available' });
     }
     
-    const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
-    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
+    // Get user step
+    const userId = req.headers['x-user-id'] || 'anonymous';
+    const stepRef = ref(db, `userSteps/${userId}_${shortCode}`);
+    const stepSnapshot = await get(stepRef);
+    const currentStep = stepSnapshot.exists() ? stepSnapshot.val().step : 1;
     
-    console.log(`Redirecting /${shortCode} to ${redirectUrl}`);
-    res.redirect(302, redirectUrl);
+    const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
+    const postRef = ref(db, `blogPosts/${randomPostId}`);
+    const postSnapshot = await get(postRef);
+    const postData = postSnapshot.val();
+    
+    res.render('interstitial', {
+      shortCode,
+      currentStep,
+      totalSteps: 4,
+      post: postData
+    });
   } catch (error) {
     console.error('Interstitial error:', error);
-    res.status(500).sendFile(path.join(__dirname, '../public/404.html'));
+    res.render('404', { error: 'Server error' });
   }
 });
 
