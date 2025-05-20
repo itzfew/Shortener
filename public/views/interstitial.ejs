@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Link Transition | URL Shortener</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="interstitial-container">
+    <header>
+      <h1>URL Shortener</h1>
+      <div class="progress-steps">
+        Step <span id="current-step"><%= currentStep %></span> of <span id="total-steps"><%= totalSteps %></span>
+      </div>
+    </header>
+    <div class="blog-post">
+      <h2><%= post.title %></h2>
+      <div class="post-content"><%= post.content %></div>
+    </div>
+    <div id="info-text">Step <%= currentStep %> of <%= totalSteps %></div>
+    <div class="countdown-container">
+      <p>Your link will be available in <span id="countdown">10</span> seconds</p>
+    </div>
+    <footer>
+      <button id="continue-btn" class="btn primary" style="display: none;">Continue</button>
+      <button id="get-link-btn" class="btn primary" style="display: none;">Get Link</button>
+      <div class="ad-placeholder">[Ad Placeholder]</div>
+    </footer>
+  </div>
+  <script type="module" src="/js/interstitial.js"></script>
+</body>
+</html>
