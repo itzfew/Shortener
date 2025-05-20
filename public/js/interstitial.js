@@ -6,24 +6,15 @@ let blogPostIds = [];
 const urlParams = new URLSearchParams(window.location.search);
 const shortCode = urlParams.get('shortCode');
 
-// DOM elements (will be in blog post pages)
-let currentStepEl, totalStepsEl, countdownEl, continueBtn, getLinkBtn, infoText;
-
-async function fetchBlogPostIds() {
+export async function fetchBlogPostIds() {
   try {
     const response = await fetch('/api/blog-posts/ids');
     blogPostIds = response.ok ? await response.json() : [];
-  } catch {
+    return blogPostIds;
+  } catch (error) {
+    console.error('Fetch blog post IDs error:', error);
     blogPostIds = [];
-  }
-  if (blogPostIds.length === 0) {
-    const blogPostEl = document.getElementById('blog-post');
-    if (blogPostEl) {
-      blogPostEl.innerHTML = `
-        <h2>Error</h2>
-        <p>No blog posts available.</p>
-      `;
-    }
+    return [];
   }
 }
 
@@ -38,6 +29,11 @@ async function goToNextPost() {
 
 function startCountdown() {
   countdown = 10;
+  const countdownEl = document.getElementById('countdown');
+  const continueBtn = document.getElementById('continue-btn');
+  const getLinkBtn = document.getElementById('get-link-btn');
+  const infoText = document.getElementById('info-text');
+
   if (countdownEl) countdownEl.textContent = countdown;
   if (continueBtn) continueBtn.style.display = 'none';
   if (getLinkBtn) getLinkBtn.style.display = 'none';
@@ -61,12 +57,12 @@ function startCountdown() {
 }
 
 function initializeElements() {
-  currentStepEl = document.getElementById('current-step');
-  totalStepsEl = document.getElementById('total-steps');
-  countdownEl = document.getElementById('countdown');
-  continueBtn = document.getElementById('continue-btn');
-  getLinkBtn = document.getElementById('get-link-btn');
-  infoText = document.getElementById('info-text');
+  const currentStepEl = document.getElementById('current-step');
+  const totalStepsEl = document.getElementById('total-steps');
+  const countdownEl = document.getElementById('countdown');
+  const continueBtn = document.getElementById('continue-btn');
+  const getLinkBtn = document.getElementById('get-link-btn');
+  const infoText = document.getElementById('info-text');
 
   if (currentStepEl) currentStepEl.textContent = currentStep;
   if (totalStepsEl) totalStepsEl.textContent = totalSteps;
@@ -126,4 +122,8 @@ async function init() {
   startCountdown();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname.includes('/posts/')) {
+    init();
+  }
+});
