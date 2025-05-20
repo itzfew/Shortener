@@ -356,8 +356,10 @@ app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
   try {
+    // Verify shortCode exists in database
     const snapshot = await get(ref(db, `urls/${shortCode}`));
     if (!snapshot.exists()) {
+      console.log(`Short URL not found: ${shortCode}`);
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
@@ -369,14 +371,16 @@ app.get('/:shortCode', async (req, res) => {
       .map(file => path.basename(file, '.html'));
     
     if (postIds.length === 0) {
+      console.log('No blog posts found in public/posts/');
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
     // Select a random post
     const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
+    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
     
-    // Redirect to the blog post page with shortCode as query parameter
-    res.redirect(`/posts/${randomPostId}.html?shortCode=${shortCode}`);
+    console.log(`Redirecting /${shortCode} to ${redirectUrl}`);
+    res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Interstitial error:', error);
     res.status(500).sendFile(path.join(__dirname, '../public/404.html'));
