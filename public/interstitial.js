@@ -1,66 +1,131 @@
-import { blogPosts } from './blog-posts.js';
-
 let currentStep = 1;
 const totalSteps = 4;
 let countdown = 10;
-
-const title = document.getElementById('page-title');
-const content = document.getElementById('post-content');
-const stepIndicator = document.getElementById('step-indicator');
-const nextButton = document.getElementById('next-button');
-const continueButton = document.getElementById('continue-button');
-const getLinkButton = document.getElementById('get-link');
-const countdownDiv = document.getElementById('countdown');
-
+let countdownInterval;
+let blogPosts = [];
 const shortCode = window.location.pathname.substring(1);
 
-function loadBlog(step) {
-  const blog = blogPosts[Math.floor(Math.random() * blogPosts.length)];
-  stepIndicator.textContent = `You are currently on step ${step}/${totalSteps}`;
-  content.innerHTML = `<h3>${blog.title}</h3><p>${blog.content}</p>`;
+// DOM elements
+const currentStepEl = document.getElementById('current-step');
+const totalStepsEl = document.getElementById('total-steps');
+const postTitleEl = document.getElementById('post-title');
+const postContentEl = document.getElementById('post-content');
+const countdownEl = document.getElementById('countdown');
+const nextBtn = document.getElementById('next-btn');
+const continueBtn = document.getElementById('continue-btn');
+const getLinkBtn = document.getElementById('get-link-btn');
+
+// Fetch blog posts
+async function fetchBlogPosts() {
+  try {
+    const response = await fetch('/api/blog-posts');
+    if (response.ok) {
+      blogPosts = await response.json();
+      if (blogPosts.length === 0) {
+        blogPosts = [
+          { title: "Tech Trends 2025", content: "Discover the latest tech trends in 2025! AI is transforming industries." },
+          { title: "Travel Destinations", content: "Check out these amazing travel destinations for your next vacation." },
+          { title: "Productivity Tips", content: "Learn how to boost your productivity with these simple tips." },
+          { title: "World News", content: "Stay updated with the latest news and insights from around the world." }
+        ];
+      }
+      updateBlogPost();
+    }
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    postTitleEl.textContent = "Error";
+    postContentEl.textContent = "Could not load blog posts. Please wait for your link.";
+  }
 }
 
+// Update blog post content
+function updateBlogPost() {
+  if (blogPosts.length === 0) return;
+  
+  const postIndex = (currentStep - 1) % blogPosts.length;
+  const post = blogPosts[postIndex];
+  
+  postTitleEl.textContent = post.title;
+  postContentEl.textContent = post.content;
+  currentStepEl.textContent = currentStep;
+  totalStepsEl.textContent = totalSteps;
+}
+
+// Start countdown
 function startCountdown() {
-  nextButton.style.display = 'none';
-  countdownDiv.style.display = 'block';
-  let timeLeft = countdown;
-  countdownDiv.textContent = timeLeft;
-
-  const timer = setInterval(() => {
-    timeLeft--;
-    countdownDiv.textContent = timeLeft;
-
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      countdownDiv.style.display = 'none';
+  countdown = 10;
+  countdownEl.textContent = countdown;
+  
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    countdown--;
+    countdownEl.textContent = countdown;
+    
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
       if (currentStep < totalSteps) {
-        continueButton.style.display = 'block';
+        nextBtn.textContent = "Next";
       } else {
-        getLinkButton.style.display = 'block';
+        nextBtn.textContent = "Scroll down to continue";
       }
     }
   }, 1000);
 }
 
-nextButton.addEventListener('click', startCountdown);
-
-continueButton.addEventListener('click', () => {
-  currentStep++;
-  continueButton.style.display = 'none';
-  loadBlog(currentStep);
-  nextButton.style.display = 'block';
-});
-
-getLinkButton.addEventListener('click', async () => {
-  const response = await fetch(`/api/resolve/${shortCode}`);
-  const data = await response.json();
-  if (response.ok) {
-    window.location.href = data.originalUrl;
-  } else {
-    content.textContent = `Error: ${data.error}`;
+// Handle next button click
+nextBtn.addEventListener('click', () => {
+  if (countdown > 0) {
+    clearInterval(countdownInterval);
+    countdown = 0;
+    countdownEl.textContent = countdown;
+    nextBtn.textContent = currentStep < totalSteps ? "Next" : "Scroll down to continue";
+  } else if (currentStep < totalSteps) {
+    currentStep++;
+    updateBlogPost();
+    startCountdown();
+    nextBtn.textContent = "Next";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
 
-// Initial Load
-loadBlog(currentStep);
-nextButton.style.display = 'block';
+// Handle continue button click
+continueBtn.addEventListener('click', () => {
+  if (currentStep < totalSteps) {
+    currentStep++;
+    updateBlogPost();
+    startCountdown();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+// Handle get link button click
+getLinkBtn.addEventListener('click', async () => {
+  try {
+    const response = await fetch(`/api/resolve/${shortCode}`);
+    const data = await response.json();
+    
+    if (response.ok) {
+      window.location.href = data.originalUrl;
+    } else {
+      postTitleEl.textContent = "Error";
+      postContentEl.textContent = data.error || "Failed to resolve URL";
+    }
+  } catch (error) {
+    postTitleEl.textContent = "Error";
+    postContentEl.textContent = "Could not connect to server";
+  }
+});
+
+// Initialize
+function init() {
+  fetchBlogPosts();
+  startCountdown();
+  
+  // Show get link button on last step
+  if (currentStep === totalSteps) {
+    continueBtn.style.display = 'none';
+    getLinkBtn.style.display = 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
