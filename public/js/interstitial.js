@@ -3,16 +3,11 @@ const totalSteps = 4;
 let countdown = 10;
 let countdownInterval;
 let blogPostIds = [];
-const shortCode = window.location.pathname.substring(1);
+const urlParams = new URLSearchParams(window.location.search);
+const shortCode = urlParams.get('shortCode');
 
-// DOM elements
-const currentStepEl = document.getElementById('current-step');
-const totalStepsEl = document.getElementById('total-steps');
-const blogPostEl = document.getElementById('blog-post');
-const countdownEl = document.getElementById('countdown');
-const continueBtn = document.getElementById('continue-btn');
-const getLinkBtn = document.getElementById('get-link-btn');
-const infoText = document.getElementById('info-text');
+// DOM elements (will be in blog post pages)
+let currentStepEl, totalStepsEl, countdownEl, continueBtn, getLinkBtn, infoText;
 
 async function fetchBlogPostIds() {
   try {
@@ -22,97 +17,112 @@ async function fetchBlogPostIds() {
     blogPostIds = [];
   }
   if (blogPostIds.length === 0) {
-    blogPostEl.innerHTML = `
-      <h2>Error</h2>
-      <p>No blog posts available.</p>
-    `;
-    return;
-  }
-  await updateBlogPost();
-}
-
-async function updateBlogPost() {
-  if (blogPostIds.length === 0) return;
-  const postId = blogPostIds[Math.floor(Math.random() * blogPostIds.length)];
-  try {
-    const response = await fetch(`/posts/${postId}.html`);
-    if (response.ok) {
-      const content = await response.text();
-      blogPostEl.innerHTML = content;
-    } else {
+    const blogPostEl = document.getElementById('blog-post');
+    if (blogPostEl) {
       blogPostEl.innerHTML = `
         <h2>Error</h2>
-        <p>Failed to load blog post.</p>
+        <p>No blog posts available.</p>
       `;
     }
-  } catch {
-    blogPostEl.innerHTML = `
-      <h2>Error</h2>
-      <p>Could not connect to server.</p>
-    `;
   }
-  currentStepEl.textContent = currentStep;
-  totalStepsEl.textContent = totalSteps;
-  infoText.textContent = `${totalSteps - currentStep} steps left out of ${totalSteps}`;
+}
+
+async function goToNextPost() {
+  if (blogPostIds.length === 0) return;
+  const currentPostId = window.location.pathname.split('/posts/')[1]?.replace('.html', '');
+  const availablePostIds = blogPostIds.filter(id => id !== currentPostId);
+  if (availablePostIds.length === 0) return;
+  const nextPostId = availablePostIds[Math.floor(Math.random() * availablePostIds.length)];
+  window.location.href = `/posts/${nextPostId}.html?shortCode=${shortCode}`;
 }
 
 function startCountdown() {
   countdown = 10;
-  countdownEl.textContent = countdown;
-  continueBtn.style.display = 'none';
-  getLinkBtn.style.display = 'none';
-  infoText.textContent = `Step ${currentStep} of ${totalSteps}`;
+  if (countdownEl) countdownEl.textContent = countdown;
+  if (continueBtn) continueBtn.style.display = 'none';
+  if (getLinkBtn) getLinkBtn.style.display = 'none';
+  if (infoText) infoText.textContent = `Step ${currentStep} of ${totalSteps}`;
 
   clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
     countdown--;
-    countdownEl.textContent = countdown;
+    if (countdownEl) countdownEl.textContent = countdown;
 
     if (countdown <= 0) {
       clearInterval(countdownInterval);
-      infoText.textContent = "Refer to the bottom to continue.";
+      if (infoText) infoText.textContent = "Refer to the bottom to continue.";
       if (currentStep === totalSteps) {
-        getLinkBtn.style.display = 'block';
+        if (getLinkBtn) getLinkBtn.style.display = 'block';
       } else {
-        continueBtn.style.display = 'inline-block';
+        if (continueBtn) continueBtn.style.display = 'inline-block';
       }
     }
   }, 1000);
 }
 
-continueBtn.addEventListener('click', async () => {
-  if (currentStep < totalSteps) {
-    currentStep++;
-    await updateBlogPost();
-    startCountdown();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-});
+function initializeElements() {
+  currentStepEl = document.getElementById('current-step');
+  totalStepsEl = document.getElementById('total-steps');
+  countdownEl = document.getElementById('countdown');
+  continueBtn = document.getElementById('continue-btn');
+  getLinkBtn = document.getElementById('get-link-btn');
+  infoText = document.getElementById('info-text');
 
-getLinkBtn.addEventListener('click', async () => {
-  try {
-    const response = await fetch(`/api/resolve/${shortCode}`);
-    const data = await response.json();
-    if (response.ok) {
-      window.location.href = data.originalUrl;
-    } else {
+  if (currentStepEl) currentStepEl.textContent = currentStep;
+  if (totalStepsEl) totalStepsEl.textContent = totalSteps;
+
+  if (continueBtn) {
+    continueBtn.addEventListener('click', async () => {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        await goToNextPost();
+      }
+    });
+  }
+
+  if (getLinkBtn) {
+    getLinkBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch(`/api/resolve/${shortCode}`);
+        const data = await response.json();
+        if (response.ok) {
+          window.location.href = data.originalUrl;
+        } else {
+          const blogPostEl = document.getElementById('blog-post');
+          if (blogPostEl) {
+            blogPostEl.innerHTML = `
+              <h2>Error</h2>
+              <p>${data.error || "Failed to resolve URL"}</p>
+            `;
+          }
+        }
+      } catch {
+        const blogPostEl = document.getElementById('blog-post');
+        if (blogPostEl) {
+          blogPostEl.innerHTML = `
+            <h2>Error</h2>
+            <p>Could not connect to server</p>
+          `;
+        }
+      }
+    });
+  }
+}
+
+async function init() {
+  if (!shortCode) {
+    const blogPostEl = document.getElementById('blog-post');
+    if (blogPostEl) {
       blogPostEl.innerHTML = `
         <h2>Error</h2>
-        <p>${data.error || "Failed to resolve URL"}</p>
+        <p>Invalid URL</p>
       `;
     }
-  } catch {
-    blogPostEl.innerHTML = `
-      <h2>Error</h2>
-      <p>Could not connect to server</p>
-    `;
+    return;
   }
-});
 
-function init() {
-  continueBtn.style.display = 'none';
-  getLinkBtn.style.display = 'none';
-  fetchBlogPostIds();
+  await fetchBlogPostIds();
+  initializeElements();
   startCountdown();
 }
 
