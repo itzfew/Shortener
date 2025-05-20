@@ -10,46 +10,78 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
-// Authentication middleware
+// Enhanced Authentication Middleware
 const authenticate = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized - No token provided' });
+  }
 
+  const token = authHeader.split(' ')[1];
+  
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userRef = ref(db, `users/${decoded.uid}`);
     const snapshot = await get(userRef);
-    if (!snapshot.exists()) return res.status(401).json({ error: 'User not found' });
-    req.user = snapshot.val();
-    req.user.uid = decoded.uid;
+    
+    if (!snapshot.exists()) {
+      return res.status(401).json({ error: 'Unauthorized - User not found' });
+    }
+    
+    req.user = {
+      ...snapshot.val(),
+      uid: decoded.uid
+    };
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('Authentication error:', error);
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Unauthorized - Token expired' });
+    }
+    res.status(401).json({ error: 'Unauthorized - Invalid token' });
   }
 };
 
-// User registration
+// User Registration
 app.post('/api/signup', async (req, res) => {
   const { name, email, phone, pincode, password } = req.body;
   
+  // Validation
+  if (!name || !email || !phone || !pincode || !password) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
   try {
     // Check if user exists
     const usersRef = ref(db, 'users');
     const snapshot = await get(usersRef);
     const users = snapshot.val() || {};
-    const userExists = Object.values(users).some(u => u.email === email);
     
-    if (userExists) return res.status(400).json({ error: 'User already exists' });
+    const userExists = Object.values(users).some(u => u.email === email);
+    if (userExists) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
     
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUserRef = ref(db, 'users/' + nanoid());
+    const newUserId = nanoid();
+    const newUserRef = ref(db, `users/${newUserId}`);
     
     await set(newUserRef, {
       name,
@@ -60,71 +92,120 @@ app.post('/api/signup', async (req, res) => {
       createdAt: Date.now()
     });
     
-    res.status(201).json({ message: 'User created successfully' });
+    // Generate token for immediate login
+    const token = jwt.sign({ uid: newUserId }, JWT_SECRET, { expiresIn: '24h' });
+    
+    res.status(201).json({ 
+      message: 'User created successfully',
+      token,
+      user: {
+        uid: newUserId,
+        name,
+        email,
+        phone,
+        pincode
+      }
+    });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// User login
+// User Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
   try {
     const usersRef = ref(db, 'users');
     const snapshot = await get(usersRef);
     const users = snapshot.val() || {};
     
-    const user = Object.entries(users).find(([_, u]) => u.email === email);
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+    const userEntry = Object.entries(users).find(([_, u]) => u.email === email);
+    if (!userEntry) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
     
-    const [uid, userData] = user;
+    const [uid, userData] = userEntry;
     const isMatch = await bcrypt.compare(password, userData.password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
     
-    const token = jwt.sign({ uid }, JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, user: { ...userData, uid } });
+    const token = jwt.sign({ uid }, JWT_SECRET, { expiresIn: '24h' });
+    
+    // Remove sensitive data before sending user info
+    const userResponse = { ...userData, uid };
+    delete userResponse.password;
+    
+    res.json({ 
+      token,
+      user: userResponse
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Password reset request
+// Password Reset Request
 app.post('/api/forgot-password', async (req, res) => {
   const { email } = req.body;
   
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
   try {
     const usersRef = ref(db, 'users');
     const snapshot = await get(usersRef);
     const users = snapshot.val() || {};
     
     const user = Object.entries(users).find(([_, u]) => u.email === email);
-    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
     
     const [uid] = user;
-    const resetToken = jwt.sign({ uid, action: 'reset' }, JWT_SECRET, { expiresIn: '15m' });
+    const resetToken = jwt.sign({ 
+      uid, 
+      action: 'reset' 
+    }, JWT_SECRET, { expiresIn: '15m' });
     
-    // In a real app, you would send this token via email
-    res.json({ resetToken });
+    // In production, you would send this token via email
+    res.json({ 
+      message: 'If an account exists with this email, a reset link has been sent',
+      resetToken 
+    });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Reset password
+// Password Reset
 app.post('/api/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   
+  if (!token || !newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'Valid token and password (min 6 chars) are required' });
+  }
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.action !== 'reset') return res.status(400).json({ error: 'Invalid token' });
+    if (decoded.action !== 'reset') {
+      return res.status(400).json({ error: 'Invalid token' });
+    }
     
     const userRef = ref(db, `users/${decoded.uid}`);
     const snapshot = await get(userRef);
-    if (!snapshot.exists()) return res.status(400).json({ error: 'User not found' });
+    if (!snapshot.exists()) {
+      return res.status(400).json({ error: 'User not found' });
+    }
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await update(userRef, { password: hashedPassword });
@@ -132,83 +213,119 @@ app.post('/api/reset-password', async (req, res) => {
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ error: 'Reset token has expired' });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Shorten URL (authenticated)
+// URL Shortening
 app.post('/api/shorten', authenticate, async (req, res) => {
   const { url, customCode } = req.body;
   
+  // URL validation
   if (!url || !url.startsWith('http')) {
-    return res.status(400).json({ error: 'Invalid URL' });
+    return res.status(400).json({ error: 'Valid URL starting with http/https is required' });
   }
-  
+
   try {
     const shortCode = customCode || nanoid();
     const shortUrl = `${req.headers.origin}/${shortCode}`;
     
-    // Check if code exists
-    const existingRef = ref(db, `urls/${shortCode}`);
-    const existingSnapshot = await get(existingRef);
-    if (existingSnapshot.exists()) {
-      return res.status(400).json({ error: 'Custom code already in use' });
+    // Check if custom code is already in use
+    if (customCode) {
+      const existingRef = ref(db, `urls/${customCode}`);
+      const existingSnapshot = await get(existingRef);
+      if (existingSnapshot.exists()) {
+        return res.status(400).json({ error: 'Custom code already in use' });
+      }
     }
     
-    await set(existingRef, { 
+    await set(ref(db, `urls/${shortCode}`), { 
       originalUrl: url, 
       createdAt: Date.now(),
       createdBy: req.user.uid,
-      clicks: 0
+      clicks: 0,
+      lastAccessed: null
     });
     
-    res.json({ shortUrl });
+    res.json({ 
+      shortUrl,
+      shortCode,
+      originalUrl: url
+    });
   } catch (error) {
     console.error('Shorten error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Resolve URL
+// URL Resolution
 app.get('/api/resolve/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
   try {
     const snapshot = await get(ref(db, `urls/${shortCode}`));
-    if (snapshot.exists()) {
-      const urlData = snapshot.val();
-      // Increment click count
-      await update(ref(db, `urls/${shortCode}`), { clicks: (urlData.clicks || 0) + 1 });
-      res.json({ originalUrl: urlData.originalUrl });
-    } else {
-      res.status(404).json({ error: 'Short URL not found' });
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: 'Short URL not found' });
     }
+    
+    const urlData = snapshot.val();
+    await update(ref(db, `urls/${shortCode}`), { 
+      clicks: (urlData.clicks || 0) + 1,
+      lastAccessed: Date.now()
+    });
+    
+    res.json({ 
+      originalUrl: urlData.originalUrl,
+      createdAt: urlData.createdAt,
+      clicks: (urlData.clicks || 0) + 1
+    });
   } catch (error) {
     console.error('Resolve error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Add this to your existing api/index.js
+// User Profile
 app.get('/api/me', authenticate, async (req, res) => {
   try {
-    // Remove sensitive data before sending user info
-    const user = { ...req.user };
-    delete user.password;
-    res.json(user);
+    // Get user's URLs
+    const urlsRef = ref(db, 'urls');
+    const snapshot = await get(urlsRef);
+    const allUrls = snapshot.val() || {};
+    
+    const userUrls = Object.entries(allUrls)
+      .filter(([_, urlData]) => urlData.createdBy === req.user.uid)
+      .map(([shortCode, urlData]) => ({
+        shortCode,
+        ...urlData
+      }));
+    
+    // Prepare user data without sensitive information
+    const userData = { ...req.user };
+    delete userData.password;
+    
+    res.json({
+      user: userData,
+      urls: userUrls
+    });
   } catch (error) {
-    console.error('Error in /api/me:', error);
+    console.error('User profile error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Get URL stats (authenticated)
+// URL Statistics
 app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
   const { shortCode } = req.params;
   
   try {
     const snapshot = await get(ref(db, `urls/${shortCode}`));
-    if (!snapshot.exists()) return res.status(404).json({ error: 'URL not found' });
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: 'URL not found' });
+    }
     
     const urlData = snapshot.val();
     if (urlData.createdBy !== req.user.uid) {
@@ -219,6 +336,7 @@ app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
       originalUrl: urlData.originalUrl,
       shortCode,
       createdAt: urlData.createdAt,
+      lastAccessed: urlData.lastAccessed,
       clicks: urlData.clicks || 0
     });
   } catch (error) {
@@ -227,7 +345,7 @@ app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
   }
 });
 
-// Get blog posts
+// Blog Posts
 app.get('/api/blog-posts', async (req, res) => {
   try {
     const snapshot = await get(ref(db, 'blogPosts'));
@@ -239,21 +357,26 @@ app.get('/api/blog-posts', async (req, res) => {
   }
 });
 
-// Serve interstitial page
+// Interstitial Page
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
   try {
     const snapshot = await get(ref(db, `urls/${shortCode}`));
-    if (snapshot.exists()) {
-      res.sendFile(path.join(__dirname, '../public/interstitial.html'));
-    } else {
-      res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+    if (!snapshot.exists()) {
+      return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
+    
+    res.sendFile(path.join(__dirname, '../public/interstitial.html'));
   } catch (error) {
     console.error('Interstitial error:', error);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 export default app;
