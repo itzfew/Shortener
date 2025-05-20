@@ -1,2 +1,39 @@
-<h2>Top Travel Escapes</h2>
-<p>Unwind with the most stunning destinations to explore this year, handpicked for adventurers.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Digital Minimalism | URL Shortener</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="interstitial-container">
+    <header>
+      <h1>URL Shortener</h1>
+      <div class="progress-steps">
+        Step <span id="current-step">1</span> of <span id="total-steps">4</span>
+      </div>
+    </header>
+
+    <div id="info-text">Initializing...</div>
+
+    <main>
+      <div class="blog-post" id="blog-post">
+        <h2>Digital Minimalism</h2>
+        <p>Reclaim your time by reducing digital noise—be intentional about tech usage.</p>
+      </div>
+
+      <div class="countdown-container">
+        <p>Your link will be available in <span id="countdown">10</span> seconds</p>
+      </div>
+    </main>
+
+    <footer>
+      <button id="continue-btn" class="btn primary">Continue</button>
+      <button id="get-link-btn" class="btn primary" style="display: none;">Get Link</button>
+    </footer>
+  </div>
+
+  <script src="/js/interstitial.js" type="module"></script>
+</body>
+</html>
