@@ -2,42 +2,55 @@ let currentStep = 1;
 const totalSteps = 4;
 let countdown = 10;
 let countdownInterval;
-let blogPosts = [];
+let blogPostIds = [];
 const shortCode = window.location.pathname.substring(1);
 
 // DOM elements
 const currentStepEl = document.getElementById('current-step');
 const totalStepsEl = document.getElementById('total-steps');
-const postTitleEl = document.getElementById('post-title');
-const postContentEl = document.getElementById('post-content');
+const blogPostEl = document.getElementById('blog-post');
 const countdownEl = document.getElementById('countdown');
 const continueBtn = document.getElementById('continue-btn');
 const getLinkBtn = document.getElementById('get-link-btn');
 const infoText = document.getElementById('info-text');
 
-const defaultPosts = [
-  { title: "AI in 2025", content: "Explore how artificial intelligence is reshaping the world—from automation to creativity." },
-  { title: "Top Travel Escapes", content: "Unwind with the most stunning destinations to explore this year, handpicked for adventurers." },
-  { title: "Hack Your Productivity", content: "Discover science-backed ways to stay focused and beat procrastination with ease." },
-  { title: "Global Economy Watch", content: "A quick dive into current events impacting businesses and nations worldwide." },
-  { title: "Digital Minimalism", content: "Reclaim your time by reducing digital noise—be intentional about tech usage." },
-];
-
-async function fetchBlogPosts() {
+async function fetchBlogPostIds() {
   try {
-    const response = await fetch('/api/blog-posts');
-    blogPosts = response.ok ? await response.json() : [];
+    const response = await fetch('/api/blog-posts/ids');
+    blogPostIds = response.ok ? await response.json() : [];
   } catch {
-    blogPosts = [];
+    blogPostIds = [];
   }
-  if (blogPosts.length === 0) blogPosts = defaultPosts;
-  updateBlogPost();
+  if (blogPostIds.length === 0) {
+    blogPostEl.innerHTML = `
+      <h2>Error</h2>
+      <p>No blog posts available.</p>
+    `;
+    return;
+  }
+  await updateBlogPost();
 }
 
-function updateBlogPost() {
-  const post = blogPosts[Math.floor(Math.random() * blogPosts.length)];
-  postTitleEl.textContent = post.title;
-  postContentEl.textContent = post.content;
+async function updateBlogPost() {
+  if (blogPostIds.length === 0) return;
+  const postId = blogPostIds[Math.floor(Math.random() * blogPostIds.length)];
+  try {
+    const response = await fetch(`/posts/${postId}.html`);
+    if (response.ok) {
+      const content = await response.text();
+      blogPostEl.innerHTML = content;
+    } else {
+      blogPostEl.innerHTML = `
+        <h2>Error</h2>
+        <p>Failed to load blog post.</p>
+      `;
+    }
+  } catch {
+    blogPostEl.innerHTML = `
+      <h2>Error</h2>
+      <p>Could not connect to server.</p>
+    `;
+  }
   currentStepEl.textContent = currentStep;
   totalStepsEl.textContent = totalSteps;
   infoText.textContent = `${totalSteps - currentStep} steps left out of ${totalSteps}`;
@@ -67,10 +80,10 @@ function startCountdown() {
   }, 1000);
 }
 
-continueBtn.addEventListener('click', () => {
+continueBtn.addEventListener('click', async () => {
   if (currentStep < totalSteps) {
     currentStep++;
-    updateBlogPost();
+    await updateBlogPost();
     startCountdown();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -83,19 +96,23 @@ getLinkBtn.addEventListener('click', async () => {
     if (response.ok) {
       window.location.href = data.originalUrl;
     } else {
-      postTitleEl.textContent = "Error";
-      postContentEl.textContent = data.error || "Failed to resolve URL";
+      blogPostEl.innerHTML = `
+        <h2>Error</h2>
+        <p>${data.error || "Failed to resolve URL"}</p>
+      `;
     }
   } catch {
-    postTitleEl.textContent = "Error";
-    postContentEl.textContent = "Could not connect to server";
+    blogPostEl.innerHTML = `
+      <h2>Error</h2>
+      <p>Could not connect to server</p>
+    `;
   }
 });
 
 function init() {
   continueBtn.style.display = 'none';
   getLinkBtn.style.display = 'none';
-  fetchBlogPosts();
+  fetchBlogPostIds();
   startCountdown();
 }
 
