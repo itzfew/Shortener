@@ -1,20 +1,55 @@
-/* Reset and base styles */
-* {
+/* Assuming this is the existing style.css */
+body {
+  font-family: sans-serif;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  background: #f4f4f9;
+  color: #333;
 }
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f0 100%);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #2d3748;
+.interstitial-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 1rem;
 }
-
+header, footer {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.progress-steps {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+.blog-post {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+.countdown-container {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+#info-text {
+  font-size: 0.9rem;
+  color: #777;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0.3rem;
+}
+.btn.primary {
+  background: #007bff;
+  color: white;
+}
+.btn:hover {
+  opacity: 0.9;
+}
 /* Auth container */
 .auth-container {
   background: #ffffff;
