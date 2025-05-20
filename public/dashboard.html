@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | URL Shortener</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-container dashboard-container">
+    <h2 id="dashboard-title">Dashboard</h2>
+    <div class="user-info">
+      <h3>Welcome, <span id="user-name">User</span></h3>
+      <p>Email: <span id="user-email">email@example.com</span></p>
+      <p>Phone: <span id="user-phone">123-456-7890</span></p>
+      <p>Pincode: <span id="user-pincode">123456</span></p>
+      <button id="logout-btn" class="btn secondary">Logout</button>
+    </div>
+    <div class="url-section">
+      <h3>Your Shortened URLs</h3>
+      <div id="url-message" role="alert"></div>
+      <table id="url-table" class="url-table">
+        <thead>
+          <tr>
+            <th>Short URL</th>
+            <th>Original URL</th>
+            <th>Clicks</th>
+            <th>Created At</th>
+            <th>Last Accessed</th>
+          </tr>
+        </thead>
+        <tbody id="url-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js" type="module"></script>
+</body>
+</html>
