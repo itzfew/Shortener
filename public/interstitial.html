@@ -5,88 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Link Transition | URL Shortener</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f4f4f9;
-      color: #333;
-    }
-    .interstitial-container {
-      max-width: 600px;
-      margin: auto;
-      padding: 1rem;
-    }
-    header, footer {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    .progress-steps {
-      font-size: 1rem;
-      margin-top: 0.5rem;
-    }
-    .blog-post {
-      background: white;
-      padding: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 1rem;
-    }
-    .countdown-container {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    #info-text {
-      font-size: 0.9rem;
-      color: #777;
-      text-align: center;
-      margin-bottom: 0.5rem;
-    }
-    .btn {
-      padding: 0.6rem 1.2rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 0.3rem;
-    }
-    .btn.primary {
-      background: #007bff;
-      color: white;
-    }
-    .btn:hover {
-      opacity: 0.9;
-    }
-  </style>
 </head>
 <body>
   <div class="interstitial-container">
     <header>
       <h1>URL Shortener</h1>
-      <div class="progress-steps">
-        Step <span id="current-step">1</span> of <span id="total-steps">4</span>
-      </div>
+      <p>Redirecting to content...</p>
     </header>
-
-    <div id="info-text">Initializing...</div>
-
-    <main>
-      <div class="blog-post" id="blog-post">
-        <h2 id="post-title">Loading...</h2>
-        <p id="post-content">Please wait while we prepare your content.</p>
-      </div>
-
-      <div class="countdown-container">
-        <p>Your link will be available in <span id="countdown">10</span> seconds</p>
-      </div>
-    </main>
-
-    <footer>
-      <button id="continue-btn" class="btn primary">Continue</button>
-      <button id="get-link-btn" class="btn primary" style="display: none;">Get Link</button>
-    </footer>
   </div>
-
-  <script src="/js/interstitial.js" type="module"></script>
 </body>
 </html>
