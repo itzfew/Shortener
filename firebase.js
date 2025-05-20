@@ -4,14 +4,14 @@ import { getDatabase, ref, set, get } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyDKvGPZZvjnAaEpRPOTSY0rLLaLG74rdA8",
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "kashurpedia.firebaseapp.com",
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://kashurpedia-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: process.env.FIREBASE_PROJECT_ID || "kashurpedia",
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "kashurpedia.firebasestorage.app",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "27142359347",
-  appId: process.env.FIREBASE_APP_ID || "1:27142359347:web:67ed5904cca6f570db1646",
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "G-HGL5ZSK9MQ"
+  apiKey: "AIzaSyDKvGPZZvjnAaEpRPOTSY0rLLaLG74rdA8",
+  authDomain: "kashurpedia.firebaseapp.com",
+  databaseURL: "https://kashurpedia-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kashurpedia",
+  storageBucket: "kashurpedia.firebasestorage.app",
+  messagingSenderId: "27142359347",
+  appId: "1:27142359347:web:67ed5904cca6f570db1646",
+  measurementId: "G-HGL5ZSK9MQ"
 };
 
 try {
@@ -28,27 +28,33 @@ try {
       const samplePosts = [
         {
           title: "The Future of AI in 2025",
-          content: "Artificial Intelligence is revolutionizing industries, from healthcare to finance. Explore the latest trends and predictions for AI in 2025.",
+          content: "Artificial Intelligence is revolutionizing industries, from healthcare to finance. Explore the latest trends and predictions for AI in 2025, including advancements in machine learning and automation.",
           author: "Tech Guru",
           date: "2025-05-15"
         },
         {
           title: "Top 10 Travel Destinations for 2025",
-          content: "Plan your next adventure with our list of must-visit destinations, from tropical beaches to vibrant cities.",
+          content: "Plan your next adventure with our list of must-visit destinations, from tropical beaches in Bali to vibrant cities like Tokyo. Discover unique experiences and travel tips.",
           author: "Wanderlust",
           date: "2025-05-10"
         },
         {
           title: "Boost Your Productivity",
-          content: "Learn practical tips to stay focused and achieve your goals with these productivity hacks.",
+          content: "Learn practical tips to stay focused and achieve your goals with these productivity hacks. From time management to minimizing distractions, take control of your day.",
           author: "Life Coach",
           date: "2025-05-05"
         },
         {
           title: "Sustainable Living Tips",
-          content: "Discover how small changes in your daily life can make a big impact on the environment.",
+          content: "Discover how small changes in your daily life can make a big impact on the environment. Learn about eco-friendly practices and sustainable products.",
           author: "Green Advocate",
           date: "2025-04-30"
+        },
+        {
+          title: "The Rise of Remote Work",
+          content: "Remote work is reshaping the workplace. Explore tools, strategies, and tips for thriving in a remote environment in 2025.",
+          author: "Work Expert",
+          date: "2025-04-25"
         }
       ];
       await set(postsRef, samplePosts);
