@@ -1,4 +1,4 @@
-import { auth, db, ref, set, createUserWithEmailAndPassword } from '../firebase.js';
+import { auth, db, ref, set, createUserWithEmailAndPassword } from '/firebase.js';
 
 const signupForm = document.getElementById('signup-form');
 const errorDiv = document.getElementById('error');
