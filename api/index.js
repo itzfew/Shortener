@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
-// Enhanced Authentication Middleware
+// Authentication Middleware
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   
@@ -45,10 +45,7 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: 'Unauthorized - User not found' });
     }
     
-    req.user = {
-      ...snapshot.val(),
-      uid: decoded.uid
-    };
+    req.user = { ...snapshot.val(), uid: decoded.uid };
     next();
   } catch (error) {
     console.error('Authentication error:', error);
@@ -95,13 +92,7 @@ app.post('/api/signup', async (req, res) => {
     res.status(201).json({ 
       message: 'User created successfully',
       token,
-      user: {
-        uid: newUserId,
-        name,
-        email,
-        phone,
-        pincode
-      }
+      user: { uid: newUserId, name, email, phone, pincode }
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -138,10 +129,7 @@ app.post('/api/login', async (req, res) => {
     const userResponse = { ...userData, uid };
     delete userResponse.password;
     
-    res.json({ 
-      token,
-      user: userResponse
-    });
+    res.json({ token, user: userResponse });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -167,10 +155,7 @@ app.post('/api/forgot-password', async (req, res) => {
     }
     
     const [uid] = user;
-    const resetToken = jwt.sign({ 
-      uid, 
-      action: 'reset' 
-    }, JWT_SECRET, { expiresIn: '15m' });
+    const resetToken = jwt.sign({ uid, action: 'reset' }, JWT_SECRET, { expiresIn: '15m' });
     
     res.json({ 
       message: 'If an account exists with this email, a reset link has been sent',
@@ -240,8 +225,7 @@ app.post('/api/shorten', authenticate, async (req, res) => {
       createdAt: Date.now(),
       createdBy: req.user.uid,
       clicks: 0,
-      lastAccessed: null,
-      currentStep: 1 // Initialize step count
+      lastAccessed: null
     });
     
     res.json({ 
@@ -299,10 +283,7 @@ app.get('/api/me', authenticate, async (req, res) => {
     const userData = { ...req.user };
     delete userData.password;
     
-    res.json({
-      user: userData,
-      urls: userUrls
-    });
+    res.json({ user: userData, urls: userUrls });
   } catch (error) {
     console.error('User profile error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -357,17 +338,12 @@ app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
   try {
-    // Verify shortCode exists in database
     const snapshot = await get(ref(db, `urls/${shortCode}`));
     if (!snapshot.exists()) {
       console.log(`Short URL not found: ${shortCode}`);
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
-    const urlData = snapshot.val();
-    const currentStep = urlData.currentStep || 1;
-
-    // Get blog post IDs
     const postsDir = path.join(__dirname, '../public/posts');
     const files = await fs.readdir(postsDir);
     const postIds = files
@@ -379,39 +355,14 @@ app.get('/:shortCode', async (req, res) => {
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
-    // Select a random post
     const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
-    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}&step=${currentStep}`;
+    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
     
     console.log(`Redirecting /${shortCode} to ${redirectUrl}`);
     res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Interstitial error:', error);
     res.status(500).sendFile(path.join(__dirname, '../public/404.html'));
-  }
-});
-
-// Update Step Count
-app.post('/api/update-step/:shortCode', async (req, res) => {
-  const { shortCode } = req.params;
-  const { step } = req.body;
-
-  if (!step || step < 1 || step > 4) {
-    return res.status(400).json({ error: 'Invalid step value' });
-  }
-
-  try {
-    const urlRef = ref(db, `urls/${shortCode}`);
-    const snapshot = await get(urlRef);
-    if (!snapshot.exists()) {
-      return res.status(404).json({ error: 'Short URL not found' });
-    }
-
-    await update(urlRef, { currentStep: step });
-    res.json({ message: 'Step updated successfully' });
-  } catch (error) {
-    console.error('Update step error:', error);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 
