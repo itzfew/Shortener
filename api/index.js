@@ -4,8 +4,8 @@ import { db, auth, ref, set, get } from '../firebase.js';
 import { customAlphabet } from 'nanoid';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getAuth, verifyIdToken } from 'firebase-admin/auth';
-import { initializeApp } from 'firebase-admin/app';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,11 +14,11 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Initialize Firebase Admin for token verification
+// Initialize Firebase Admin
 initializeApp({
   credential: process.env.GOOGLE_APPLICATION_CREDENTIALS
-    ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-    : undefined,
+    ? cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS))
+    : cert(require('../serviceAccount.json')),
 });
 
 // Middleware to verify Firebase ID token
@@ -87,7 +87,7 @@ app.get('/api/resolve/:shortCode', async (req, res) => {
   }
 });
 
-// GET /api/blog-posts - Fetch random blog post
+// GET /api/blog-posts/random - Fetch random blog post
 app.get('/api/blog-posts/random', async (req, res) => {
   try {
     const snapshot = await get(ref(db, 'blogPosts'));
