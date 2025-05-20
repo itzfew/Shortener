@@ -13,5 +13,42 @@
       <p>Redirecting to content...</p>
     </header>
   </div>
+  <script type="module">
+    import { fetchBlogPostIds } from '/js/interstitial.js';
+
+    async function redirect() {
+      const shortCode = window.location.pathname.substring(1);
+      if (!shortCode) {
+        window.location.href = '/404.html';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/resolve/${shortCode}`);
+        if (!response.ok) {
+          console.log(`Invalid shortCode: ${shortCode}`);
+          window.location.href = '/404.html';
+          return;
+        }
+
+        const postIds = await fetchBlogPostIds();
+        if (postIds.length === 0) {
+          console.log('No blog posts available');
+          window.location.href = '/404.html';
+          return;
+        }
+
+        const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
+        const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
+        console.log(`Client-side redirect to ${redirectUrl}`);
+        window.location.href = redirectUrl;
+      } catch (error) {
+        console.error('Client-side redirect error:', error);
+        window.location.href = '/404.html';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', redirect);
+  </script>
 </body>
 </html>
