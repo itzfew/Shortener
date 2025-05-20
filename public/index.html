@@ -7,9 +7,17 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <header>
+    <h1>ShortLink</h1>
+    <nav>
+      <a href="/login.html">Login</a>
+      <a href="/signup.html">Sign Up</a>
+    </nav>
+  </header>
   <div class="container">
-    <h1>URL Shortener</h1>
-    <form id="url-form">
+    <h2>Create a Short Link</h2>
+    <p>Sign in to shorten URLs and share them with ease!</p>
+    <form id="url-form" style="display: none;">
       <input type="url" id="url-input" placeholder="Enter your URL" required>
       <button type="submit">Shorten</button>
     </form>
