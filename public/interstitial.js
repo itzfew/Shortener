@@ -43,6 +43,8 @@ function startCountdown() {
       if (currentPage <= totalPages) {
         updatePage();
         startCountdown();
+      } else {
+        updatePage();
       }
     }
   }, 1000);
@@ -51,31 +53,45 @@ function startCountdown() {
 // Fetch original URL and handle "Get Link" click
 getLinkButton.addEventListener('click', async () => {
   try {
-  const response = await fetch(`/api/resolve/${shortCode}`);
-  const data = await response.json();
-  if (response.ok) {
-    window.location.href = data.originalUrl;
-  } else {
-    postContent.textContent = `Error: ${data.error}`;
+    const response = await fetch(`/api/resolve/${shortCode}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    if (response.ok && data.originalUrl) {
+      console.log(`Redirecting to ${data.originalUrl}`);
+      window.location.href = data.originalUrl;
+    } else {
+      postContent.textContent = `Error: ${data.error || 'Invalid response'}`;
+      postContent.classList.add('error');
+    }
+  } catch (error) {
+    console.error('Error fetching original URL:', error);
+    postContent.textContent = 'Error: Could not connect to server';
+    postContent.classList.add('error');
   }
-} catch (error) {
-  postContent.textContent = 'Error: Could not connect to server';
-}
 });
 
-// Add new API endpoint to resolve short code
-async function resolveShortCode() {
+// Validate short code on page load
+async function validateShortCode() {
   try {
     const response = await fetch(`/api/resolve/${shortCode}`);
     const data = await response.json();
     if (!response.ok) {
-      postContent.textContent = `Error: ${data.error}`;
+      postContent.textContent = `Error: ${data.error || 'Invalid short code'}`;
+      postContent.classList.add('error');
+      countdownDiv.style.display = 'none';
+    } else {
+      updatePage();
+      startCountdown();
     }
   } catch (error) {
+    console.error('Error validating short code:', error);
     postContent.textContent = 'Error: Could not connect to server';
+    postContent.classList.add('error');
+    countdownDiv.style.display = 'none';
   }
 }
 
-// Initialize the first page
-updatePage();
-startCountdown();
+// Initialize
+validateShortCode();
