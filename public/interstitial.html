@@ -7,10 +7,20 @@
   <link rel="stylesheet" href="/interstitial.css">
 </head>
 <body>
+  <header>
+    <h1>ShortLink</h1>
+  </header>
   <div class="container">
-    <h1 id="page-title">Please Wait...</h1>
-    <div id="countdown">10</div>
-    <div id="post-content"></div>
+    <div id="progress">You are currently on step 1/4</div>
+    <div id="post-content">
+      <h2 id="post-title">Loading...</h2>
+      <p id="post-meta"></p>
+      <p id="post-body"></p>
+    </div>
+    <button id="next-button">Next</button>
+    <div id="countdown" style="display: none;">10</div>
+    <p id="instruction" style="display: none;">Scroll down & click on Continue button for your destination link</p>
+    <button id="continue-button" style="display: none;">Continue</button>
     <button id="get-link" style="display: none;">Get Link</button>
   </div>
   <script src="/interstitial.js"></script>
