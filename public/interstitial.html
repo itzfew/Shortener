@@ -1,132 +1,61 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Link Transition | URL Shortener</title>
+  <link rel="stylesheet" href="/css/style.css" />
   <style>
-    * {
+    body {
+      font-family: sans-serif;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f4f4f9;
+      color: #333;
     }
-
-    body {
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
     .interstitial-container {
-      max-width: 800px;
-      width: 100%;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+      max-width: 600px;
+      margin: auto;
+      padding: 1rem;
     }
-
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 20px;
+    header, footer {
       text-align: center;
+      margin-bottom: 1rem;
     }
-
-    header h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
     .progress-steps {
-      font-size: 16px;
-      opacity: 0.9;
+      font-size: 1rem;
+      margin-top: 0.5rem;
     }
-
-    .steps-remaining {
-      font-size: 14px;
-      margin-top: 5px;
-      color: #ecf0f1;
-    }
-
-    main {
-      padding: 30px;
-    }
-
     .blog-post {
-      margin-bottom: 30px;
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
     }
-
-    .blog-post h2 {
-      font-size: 28px;
-      color: #2c3e50;
-      margin-bottom: 15px;
-    }
-
-    .blog-post p {
-      font-size: 16px;
-      line-height: 1.6;
-      color: #34495e;
-    }
-
     .countdown-container {
       text-align: center;
-      margin: 20px 0;
+      margin-bottom: 1rem;
     }
-
-    .countdown-container p {
-      font-size: 16px;
-      color: #7f8c8d;
-      margin-bottom: 15px;
+    #info-text {
+      font-size: 0.9rem;
+      color: #777;
+      text-align: center;
+      margin-bottom: 0.5rem;
     }
-
     .btn {
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 0.6rem 1.2rem;
       border: none;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      margin: 0.3rem;
     }
-
     .btn.primary {
-      background: #3498db;
+      background: #007bff;
       color: white;
     }
-
-    .btn.primary:hover {
-      background: #2980b9;
-      transform: translateY(-2px);
-    }
-
-    footer {
-      padding: 20px;
-      text-align: center;
-      background: #f8f9fa;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    @media (max-width: 600px) {
-      .interstitial-container {
-        margin: 10px;
-      }
-
-      .blog-post h2 {
-        font-size: 22px;
-      }
-
-      .btn {
-        width: 100%;
-        padding: 12px;
-      }
+    .btn:hover {
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -136,24 +65,29 @@
       <h1>URL Shortener</h1>
       <div class="progress-steps">
         Step <span id="current-step">1</span> of <span id="total-steps">4</span>
-        <div class="steps-remaining" id="steps-remaining"></div>
       </div>
     </header>
+
+    <div id="info-text">Initializing...</div>
+
     <main>
       <div class="blog-post">
         <h2 id="post-title">Loading...</h2>
         <p id="post-content">Please wait while we prepare your content.</p>
       </div>
-      <div class="countdown-container hidden" id="countdown-container">
+
+      <div class="countdown-container">
         <p>Your link will be available in <span id="countdown">10</span> seconds</p>
-        <button id="next-btn" class="btn primary">Next</button>
+        <button id="next-btn" class="btn">Next</button>
       </div>
     </main>
+
     <footer>
-      <button id="continue-btn" class="btn primary hidden">Continue</button>
-      <button id="get-link-btn" class="btn primary hidden">Get Link</button>
+      <button id="continue-btn" class="btn primary">Continue</button>
+      <button id="get-link-btn" class="btn primary" style="display: none;">Get Link</button>
     </footer>
   </div>
+
   <script src="/js/interstitial.js" type="module"></script>
 </body>
 </html>
