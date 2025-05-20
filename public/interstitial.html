@@ -32,9 +32,6 @@
           return;
         }
 
-        const urlData = await response.json();
-        const currentStep = urlData.currentStep || 1;
-
         const postIds = await fetchBlogPostIds();
         if (postIds.length === 0) {
           console.log('No blog posts available');
@@ -43,7 +40,7 @@
         }
 
         const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
-        const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}&step=${currentStep}`;
+        const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
         console.log(`Client-side redirect to ${redirectUrl}`);
         window.location.href = redirectUrl;
       } catch (error) {
