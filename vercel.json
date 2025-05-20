@@ -10,44 +10,39 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "methods": ["GET", "POST", "PUT", "DELETE"],
-      "dest": "/api/index.js"
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/auth/(.*)",
-      "dest": "/public/auth/$1"
+      "source": "/posts/:postId",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/posts/(.*)",
-      "dest": "/api/index.js"
+      "source": "/:shortCode([a-zA-Z0-9]{6})",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/([a-zA-Z0-9]{6})",
-      "dest": "/api/index.js"
+      "source": "/auth/:path*",
+      "destination": "/public/auth/:path*"
     },
     {
-      "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
-      "dest": "/public/$1"
+      "source": "/:path*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico)",
+      "destination": "/public/:path*"
     },
     {
-      "src": "/",
-      "dest": "/public/index.html"
+      "source": "/",
+      "destination": "/public/index.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/public/404.html",
-      "status": 404
+      "source": "/:path*",
+      "destination": "/public/404.html"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -63,5 +58,10 @@
         }
       ]
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
