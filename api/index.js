@@ -10,8 +10,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
-
-// Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Initialize nanoid for generating short codes (6 characters)
@@ -21,8 +19,8 @@ const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
 app.post('/api/shorten', async (req, res) => {
   const { url } = req.body;
 
-  // Basic URL validation
   if (!url || !url.startsWith('http')) {
+    console.error('Invalid URL:', url);
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
@@ -30,14 +28,35 @@ app.post('/api/shorten', async (req, res) => {
     const shortCode = nanoid();
     const shortUrl = `${req.headers.origin}/${shortCode}`;
 
-    // Store in Firebase
     await set(ref(db, `urls/${shortCode}`), {
       originalUrl: url,
       createdAt: Date.now(),
     });
 
+    console.log(`Shortened URL: ${shortUrl}`);
     res.json({ shortUrl });
   } catch (error) {
+    console.error('Error in /api/shorten:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/resolve/:shortCode - Fetch original URL
+app.get('/api/resolve/:shortCode', async (req, res) => {
+  const { shortCode } = req.params;
+
+  try {
+    const snapshot = await get(ref(db, `urls/${shortCode}`));
+    if (snapshot.exists()) {
+      const { originalUrl } = snapshot.val();
+      console.log(`Resolved ${shortCode} to ${originalUrl}`);
+      res.json({ originalUrl });
+    } else {
+      console.error(`Short code not found: ${shortCode}`);
+      res.status(404).json({ error: 'Short URL not found' });
+    }
+  } catch (error) {
+    console.error('Error in /api/resolve:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -49,12 +68,13 @@ app.get('/:shortCode', async (req, res) => {
   try {
     const snapshot = await get(ref(db, `urls/${shortCode}`));
     if (snapshot.exists()) {
-      // Serve the interstitial page with the short code
       res.sendFile(path.join(__dirname, '../public/interstitial.html'));
     } else {
+      console.error(`Short code not found: ${shortCode}`);
       res.status(404).json({ error: 'Short URL not found' });
     }
   } catch (error) {
+    console.error('Error in /:shortCode:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
