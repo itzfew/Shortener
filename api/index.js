@@ -240,7 +240,8 @@ app.post('/api/shorten', authenticate, async (req, res) => {
       createdAt: Date.now(),
       createdBy: req.user.uid,
       clicks: 0,
-      lastAccessed: null
+      lastAccessed: null,
+      currentStep: 1 // Initialize step count
     });
     
     res.json({ 
@@ -363,6 +364,9 @@ app.get('/:shortCode', async (req, res) => {
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
+    const urlData = snapshot.val();
+    const currentStep = urlData.currentStep || 1;
+
     // Get blog post IDs
     const postsDir = path.join(__dirname, '../public/posts');
     const files = await fs.readdir(postsDir);
@@ -377,13 +381,37 @@ app.get('/:shortCode', async (req, res) => {
     
     // Select a random post
     const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
-    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}`;
+    const redirectUrl = `/posts/${randomPostId}.html?shortCode=${shortCode}&step=${currentStep}`;
     
     console.log(`Redirecting /${shortCode} to ${redirectUrl}`);
     res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Interstitial error:', error);
     res.status(500).sendFile(path.join(__dirname, '../public/404.html'));
+  }
+});
+
+// Update Step Count
+app.post('/api/update-step/:shortCode', async (req, res) => {
+  const { shortCode } = req.params;
+  const { step } = req.body;
+
+  if (!step || step < 1 || step > 4) {
+    return res.status(400).json({ error: 'Invalid step value' });
+  }
+
+  try {
+    const urlRef = ref(db, `urls/${shortCode}`);
+    const snapshot = await get(urlRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: 'Short URL not found' });
+    }
+
+    await update(urlRef, { currentStep: step });
+    res.json({ message: 'Step updated successfully' });
+  } catch (error) {
+    console.error('Update step error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
