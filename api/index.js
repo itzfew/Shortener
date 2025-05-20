@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +17,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // CORS middleware
-app.use((req, res, next) => {
+app.use((req Moments, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
@@ -345,14 +346,17 @@ app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
   }
 });
 
-// Blog Posts
-app.get('/api/blog-posts', async (req, res) => {
+// Get Blog Post IDs
+app.get('/api/blog-posts/ids', async (req, res) => {
   try {
-    const snapshot = await get(ref(db, 'blogPosts'));
-    const posts = snapshot.val() || [];
-    res.json(posts);
+    const postsDir = path.join(__dirname, '../public/posts');
+    const files = await fs.readdir(postsDir);
+    const postIds = files
+      .filter(file => file.endsWith('.html'))
+      .map(file => path.basename(file, '.html'));
+    res.json(postIds);
   } catch (error) {
-    console.error('Blog posts error:', error);
+    console.error('Blog post IDs error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
