@@ -5,6 +5,7 @@ let countdownInterval;
 let blogPostIds = [];
 const urlParams = new URLSearchParams(window.location.search);
 const shortCode = urlParams.get('shortCode');
+const stepParam = parseInt(urlParams.get('step'), 10);
 
 export async function fetchBlogPostIds() {
   try {
@@ -18,13 +19,35 @@ export async function fetchBlogPostIds() {
   }
 }
 
+async function updateStepInFirebase(shortCode, step) {
+  try {
+    const response = await fetch(`/api/update-step/${shortCode}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update step');
+    }
+  } catch (error) {
+    console.error('Update step error:', error);
+    // Fallback to session storage
+    sessionStorage.setItem(`step_${shortCode}`, step);
+  }
+}
+
 async function goToNextPost() {
   if (blogPostIds.length === 0) return;
   const currentPostId = window.location.pathname.split('/posts/')[1]?.replace('.html', '');
   const availablePostIds = blogPostIds.filter(id => id !== currentPostId);
   if (availablePostIds.length === 0) return;
   const nextPostId = availablePostIds[Math.floor(Math.random() * availablePostIds.length)];
-  window.location.href = `/posts/${nextPostId}.html?shortCode=${shortCode}`;
+  const nextStep = currentStep + 1;
+
+  // Update step in Firebase
+  await updateStepInFirebase(shortCode, nextStep);
+
+  window.location.href = `/posts/${nextPostId}.html?shortCode=${shortCode}&step=${nextStep}`;
 }
 
 function startCountdown() {
@@ -70,7 +93,6 @@ function initializeElements() {
   if (continueBtn) {
     continueBtn.addEventListener('click', async () => {
       if (currentStep < totalSteps) {
-        currentStep++;
         await goToNextPost();
       }
     });
@@ -115,6 +137,23 @@ async function init() {
       `;
     }
     return;
+  }
+
+  // Set currentStep from query parameter or Firebase
+  if (stepParam && stepParam >= 1 && stepParam <= totalSteps) {
+    currentStep = stepParam;
+  } else {
+    try {
+      const response = await fetch(`/api/resolve/${shortCode}`);
+      if (response.ok) {
+        const urlData = await response.json();
+        currentStep = urlData.currentStep || 1;
+      }
+    } catch {
+      // Fallback to session storage
+      const storedStep = sessionStorage.getItem(`step_${shortCode}`);
+      currentStep = storedStep ? parseInt(storedStep, 10) : 1;
+    }
   }
 
   await fetchBlogPostIds();
