@@ -4,6 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlInput = document.getElementById('url-input');
   const resultDiv = document.getElementById('result');
   
+  // Function to get auth headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   urlForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     resultDiv.innerHTML = '';
@@ -15,21 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     try {
-      // Get the token from localStorage
-      const token = localStorage.getItem('token');
-      
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      // Add Authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
       const response = await fetch('/api/shorten', {
         method: 'POST',
-        headers: headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ url })
       });
       
@@ -41,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
             Shortened URL: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>
           </div>
         `;
+      } else if (response.status === 401) {
+        // Handle unauthorized error
+        resultDiv.innerHTML = '<div class="error-message">Session expired. Please login again.</div>';
+        localStorage.removeItem('token');
+        setTimeout(() => window.location.href = '/auth/login.html', 2000);
       } else {
         resultDiv.innerHTML = `<div class="error-message">${data.error || 'Error shortening URL'}</div>`;
       }
@@ -48,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
       resultDiv.innerHTML = '<div class="error-message">Could not connect to server</div>';
     }
   });
-  
-  // Check auth status and update UI
+
+  // Check auth status on page load
   async function checkAuthStatus() {
     const token = localStorage.getItem('token');
     const loginLink = document.getElementById('login-link');
@@ -58,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (token) {
       try {
         const response = await fetch('/api/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: getAuthHeaders()
         });
         
         if (response.ok) {
