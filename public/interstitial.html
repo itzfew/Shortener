@@ -3,26 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Link Transition</title>
-  <link rel="stylesheet" href="/interstitial.css">
+  <title>Link Transition | URL Shortener</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <header>
-    <h1>ShortLink</h1>
-  </header>
-  <div class="container">
-    <div id="progress">You are currently on step 1/4</div>
-    <div id="post-content">
-      <h2 id="post-title">Loading...</h2>
-      <p id="post-meta"></p>
-      <p id="post-body"></p>
-    </div>
-    <button id="next-button">Next</button>
-    <div id="countdown" style="display: none;">10</div>
-    <p id="instruction" style="display: none;">Scroll down & click on Continue button for your destination link</p>
-    <button id="continue-button" style="display: none;">Continue</button>
-    <button id="get-link" style="display: none;">Get Link</button>
+  <div class="interstitial-container">
+    <header>
+      <h1>URL Shortener</h1>
+      <div class="progress-steps">
+        <span id="current-step">1</span> of <span id="total-steps">4</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="blog-post">
+        <h2 id="post-title">Loading...</h2>
+        <p id="post-content">Please wait while we prepare your content.</p>
+      </div>
+
+      <div class="countdown-container">
+        <p>Your link will be available in <span id="countdown">10</span> seconds</p>
+        <button id="next-btn" class="btn">Next</button>
+      </div>
+    </main>
+
+    <footer>
+      <button id="continue-btn" class="btn primary">Continue</button>
+      <button id="get-link-btn" class="btn primary" style="display: none;">Get Link</button>
+    </footer>
   </div>
-  <script src="/interstitial.js"></script>
+
+  <script src="/js/interstitial.js" type="module"></script>
 </body>
 </html>
