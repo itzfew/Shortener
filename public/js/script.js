@@ -1,3 +1,4 @@
+// public/js/script.js
 document.addEventListener('DOMContentLoaded', () => {
   const urlForm = document.getElementById('url-form');
   const urlInput = document.getElementById('url-input');
@@ -5,7 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
-    const headers = { 'Content-Type': 'application/json' };
+    const userId = localStorage.getItem('userId') || 'anonymous';
+    const headers = { 'Content-Type': 'application/json', 'X-User-Id': userId };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
   };
@@ -39,11 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (response.status === 401) {
           resultDiv.innerHTML = '<div class="error-message">Session expired. Please login again.</div>';
           localStorage.removeItem('token');
+          localStorage.removeItem('userId');
           setTimeout(() => window.location.href = '/auth/login.html', 2000);
         } else {
-          resultDiv.innerHTML = `<div class="error-message">${data.error || 'Error shortening URL'}</div>`;
+          resultDiv.innerHTML = `<div class="error-message">${data.error || 'Could not connect to server'}</div>`;
         }
       } catch (error) {
+        console.error('Shorten URL error:', error.message);
         resultDiv.innerHTML = '<div class="error-message">Could not connect to server</div>';
       }
     });
@@ -59,14 +63,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch('/api/me', { headers: getAuthHeaders() });
         
         if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('userId', data.user.uid);
           loginLink.textContent = 'Dashboard';
           loginLink.href = '/dashboard.html';
           signupLink.style.display = 'none';
         } else {
           localStorage.removeItem('token');
+          localStorage.removeItem('userId');
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('Auth check error:', error.message);
       }
     }
   }
