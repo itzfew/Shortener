@@ -189,6 +189,19 @@ app.get('/api/resolve/:shortCode', async (req, res) => {
   }
 });
 
+// Add this to your existing api/index.js
+app.get('/api/me', authenticate, async (req, res) => {
+  try {
+    // Remove sensitive data before sending user info
+    const user = { ...req.user };
+    delete user.password;
+    res.json(user);
+  } catch (error) {
+    console.error('Error in /api/me:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get URL stats (authenticated)
 app.get('/api/stats/:shortCode', authenticate, async (req, res) => {
   const { shortCode } = req.params;
