@@ -28,7 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const JWT_SECRET = 'your-secret-key'; // Hardcoded as per your request to avoid .env
+const JWT_SECRET = 'your-secret-key'; // Hardcoded as per request
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
 // Authentication Middleware
@@ -401,7 +401,6 @@ app.get('/:shortCode', async (req, res) => {
       return res.render('404', { error: 'No blog posts available' });
     }
     
-    // Get user step
     const userId = req.headers['x-user-id'] || 'anonymous';
     const stepRef = ref(db, `userSteps/${userId}_${shortCode}`);
     const stepSnapshot = await get(stepRef);
