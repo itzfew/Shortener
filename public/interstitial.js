@@ -1,119 +1,66 @@
-let currentPage = 1;
-const totalPages = 4;
-let countdown = 10;
-let currentPost = null;
+import { blogPosts } from './blog-posts.js';
 
-const progress = document.getElementById('progress');
-const postTitle = document.getElementById('post-title');
-const postMeta = document.getElementById('post-meta');
-const postBody = document.getElementById('post-body');
+let currentStep = 1;
+const totalSteps = 4;
+let countdown = 10;
+
+const title = document.getElementById('page-title');
+const content = document.getElementById('post-content');
+const stepIndicator = document.getElementById('step-indicator');
 const nextButton = document.getElementById('next-button');
-const countdownDiv = document.getElementById('countdown');
-const instruction = document.getElementById('instruction');
 const continueButton = document.getElementById('continue-button');
 const getLinkButton = document.getElementById('get-link');
+const countdownDiv = document.getElementById('countdown');
 
-// Get short code from URL
 const shortCode = window.location.pathname.substring(1);
 
-async function fetchRandomPost() {
-  try {
-    const response = await fetch('/api/blog-posts/random');
-    const data = await response.json();
-    if (response.ok) {
-      currentPost = data;
-      postTitle.textContent = data.title;
-      postMeta.textContent = `By ${data.author} on ${data.date}`;
-      postBody.textContent = data.content;
-    } else {
-      postBody.textContent = `Error: ${data.error}`;
-      postBody.classList.add('error');
-    }
-  } catch (error) {
-    console.error('Error fetching post:', error);
-    postBody.textContent = 'Error: Could not load blog post';
-    postBody.classList.add('error');
-  }
-}
-
-function updatePage() {
-  progress.textContent = `You are currently on step ${currentPage}/${totalPages}`;
-  nextButton.style.display = 'block';
-  countdownDiv.style.display = 'none';
-  instruction.style.display = 'none';
-  continueButton.style.display = 'none';
-  getLinkButton.style.display = 'none';
-  fetchRandomPost();
+function loadBlog(step) {
+  const blog = blogPosts[Math.floor(Math.random() * blogPosts.length)];
+  stepIndicator.textContent = `You are currently on step ${step}/${totalSteps}`;
+  content.innerHTML = `<h3>${blog.title}</h3><p>${blog.content}</p>`;
 }
 
 function startCountdown() {
-  countdown = 10;
-  countdownDiv.textContent = countdown;
-  countdownDiv.style.display = 'block';
   nextButton.style.display = 'none';
+  countdownDiv.style.display = 'block';
+  let timeLeft = countdown;
+  countdownDiv.textContent = timeLeft;
 
-  const interval = setInterval(() => {
-    countdown--;
-    countdownDiv.textContent = countdown;
+  const timer = setInterval(() => {
+    timeLeft--;
+    countdownDiv.textContent = timeLeft;
 
-    if (countdown <= 0) {
-      clearInterval(interval);
-      instruction.style.display = 'block';
-      continueButton.style.display = currentPage < totalPages ? 'block' : 'none';
-      getLinkButton.style.display = currentPage === totalPages ? 'block' : 'none';
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      countdownDiv.style.display = 'none';
+      if (currentStep < totalSteps) {
+        continueButton.style.display = 'block';
+      } else {
+        getLinkButton.style.display = 'block';
+      }
     }
   }, 1000);
 }
 
-nextButton.addEventListener('click', () => {
-  startCountdown();
-});
+nextButton.addEventListener('click', startCountdown);
 
 continueButton.addEventListener('click', () => {
-  currentPage++;
-  if (currentPage <= totalPages) {
-    updatePage();
-  }
+  currentStep++;
+  continueButton.style.display = 'none';
+  loadBlog(currentStep);
+  nextButton.style.display = 'block';
 });
 
 getLinkButton.addEventListener('click', async () => {
-  try {
-    const response = await fetch(`/api/resolve/${shortCode}`);
-    const data = await response.json();
-    if (response.ok && data.originalUrl) {
-      console.log(`Redirecting to ${data.originalUrl}`);
-      window.location.href = data.originalUrl;
-    } else {
-      postBody.textContent = `Error: ${data.error || 'Invalid response'}`;
-      postBody.classList.add('error');
-    }
-  } catch (error) {
-    console.error('Error fetching original URL:', error);
-    postBody.textContent = 'Error: Could not connect to server';
-    postBody.classList.add('error');
+  const response = await fetch(`/api/resolve/${shortCode}`);
+  const data = await response.json();
+  if (response.ok) {
+    window.location.href = data.originalUrl;
+  } else {
+    content.textContent = `Error: ${data.error}`;
   }
 });
 
-async function validateShortCode() {
-  try {
-    const response = await fetch(`/api/resolve/${shortCode}`);
-    const data = await response.json();
-    if (!response.ok) {
-      postBody.textContent = `Error: ${data.error || 'Invalid short code'}`;
-      postBody.classList.add('error');
-      countdownDiv.style.display = 'none';
-      nextButton.style.display = 'none';
-    } else {
-      updatePage();
-    }
-  } catch (error) {
-    console.error('Error validating short code:', error);
-    postBody.textContent = 'Error: Could not connect to server';
-    postBody.classList.add('error');
-    countdownDiv.style.display = 'none';
-    nextButton.style.display = 'none';
-  }
-}
-
-// Initialize
-validateShortCode();
+// Initial Load
+loadBlog(currentStep);
+nextButton.style.display = 'block';
