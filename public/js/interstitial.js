@@ -1,3 +1,4 @@
+// public/js/interstitial.js
 const totalSteps = 4;
 let countdown = 10;
 let countdownInterval;
@@ -6,10 +7,13 @@ const shortCode = urlParams.get('shortCode');
 
 async function fetchBlogPostIds() {
   try {
-    const response = await fetch('/api/blog-posts/ids');
-    return response.ok ? await response.json() : [];
+    const response = await fetch('/api/blog-posts/ids', {
+      headers: { 'X-User-Id': localStorage.getItem('userId') || 'anonymous' }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.error('Fetch blog post IDs error:', error);
+    console.error('Fetch blog post IDs error:', error.message);
     return [];
   }
 }
@@ -31,18 +35,24 @@ async function goToNextPost(currentStep) {
   const nextPostId = availablePostIds[Math.floor(Math.random() * availablePostIds.length)];
   const nextStep = currentStep + 1;
 
-  // Update step in Firebase
   try {
-    await fetch('/api/update-step', {
+    const response = await fetch('/api/update-step', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-Id': localStorage.getItem('userId') || 'anonymous'
+      },
       body: JSON.stringify({ shortCode, step: nextStep })
     });
+    if (!response.ok) throw new Error('Failed to update step');
+    window.location.href = `/posts/${nextPostId}?shortCode=${shortCode}`;
   } catch (error) {
-    console.error('Step update error:', error);
+    console.error('Step update error:', error.message);
+    document.querySelector('.blog-post').innerHTML = `
+      <h2>Error</h2>
+      <p>Could not connect to server</p>
+    `;
   }
-
-  window.location.href = `/posts/${nextPostId}.html?shortCode=${shortCode}`;
 }
 
 function startCountdown(currentStep) {
@@ -100,7 +110,9 @@ async function init() {
   if (getLinkBtn) {
     getLinkBtn.addEventListener('click', async () => {
       try {
-        const response = await fetch(`/api/resolve/${shortCode}`);
+        const response = await fetch(`/api/resolve/${shortCode}`, {
+          headers: { 'X-User-Id': localStorage.getItem('userId') || 'anonymous' }
+        });
         const data = await response.json();
         if (response.ok) {
           window.location.href = data.originalUrl;
@@ -110,7 +122,8 @@ async function init() {
             <p>${data.error || "Failed to resolve URL"}</p>
           `;
         }
-      } catch {
+      } catch (error) {
+        console.error('Resolve error:', error.message);
         document.querySelector('.blog-post').innerHTML = `
           <h2>Error</h2>
           <p>Could not connect to server</p>
