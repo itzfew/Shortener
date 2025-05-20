@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // CORS middleware
-app.use((req Moments, res, next) => {
+app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
@@ -63,13 +63,11 @@ const authenticate = async (req, res, next) => {
 app.post('/api/signup', async (req, res) => {
   const { name, email, phone, pincode, password } = req.body;
   
-  // Validation
   if (!name || !email || !phone || !pincode || !password) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
   try {
-    // Check if user exists
     const usersRef = ref(db, 'users');
     const snapshot = await get(usersRef);
     const users = snapshot.val() || {};
@@ -79,7 +77,6 @@ app.post('/api/signup', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
     
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUserId = nanoid();
     const newUserRef = ref(db, `users/${newUserId}`);
@@ -93,7 +90,6 @@ app.post('/api/signup', async (req, res) => {
       createdAt: Date.now()
     });
     
-    // Generate token for immediate login
     const token = jwt.sign({ uid: newUserId }, JWT_SECRET, { expiresIn: '24h' });
     
     res.status(201).json({ 
@@ -139,7 +135,6 @@ app.post('/api/login', async (req, res) => {
     
     const token = jwt.sign({ uid }, JWT_SECRET, { expiresIn: '24h' });
     
-    // Remove sensitive data before sending user info
     const userResponse = { ...userData, uid };
     delete userResponse.password;
     
@@ -177,7 +172,6 @@ app.post('/api/forgot-password', async (req, res) => {
       action: 'reset' 
     }, JWT_SECRET, { expiresIn: '15m' });
     
-    // In production, you would send this token via email
     res.json({ 
       message: 'If an account exists with this email, a reset link has been sent',
       resetToken 
@@ -225,7 +219,6 @@ app.post('/api/reset-password', async (req, res) => {
 app.post('/api/shorten', authenticate, async (req, res) => {
   const { url, customCode } = req.body;
   
-  // URL validation
   if (!url || !url.startsWith('http')) {
     return res.status(400).json({ error: 'Valid URL starting with http/https is required' });
   }
@@ -234,7 +227,6 @@ app.post('/api/shorten', authenticate, async (req, res) => {
     const shortCode = customCode || nanoid();
     const shortUrl = `${req.headers.origin}/${shortCode}`;
     
-    // Check if custom code is already in use
     if (customCode) {
       const existingRef = ref(db, `urls/${customCode}`);
       const existingSnapshot = await get(existingRef);
@@ -292,7 +284,6 @@ app.get('/api/resolve/:shortCode', async (req, res) => {
 // User Profile
 app.get('/api/me', authenticate, async (req, res) => {
   try {
-    // Get user's URLs
     const urlsRef = ref(db, 'urls');
     const snapshot = await get(urlsRef);
     const allUrls = snapshot.val() || {};
@@ -304,7 +295,6 @@ app.get('/api/me', authenticate, async (req, res) => {
         ...urlData
       }));
     
-    // Prepare user data without sensitive information
     const userData = { ...req.user };
     delete userData.password;
     
@@ -361,7 +351,7 @@ app.get('/api/blog-posts/ids', async (req, res) => {
   }
 });
 
-// Interstitial Page
+// Interstitial Page - Redirect to Blog Post
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   
@@ -371,10 +361,25 @@ app.get('/:shortCode', async (req, res) => {
       return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
     }
     
-    res.sendFile(path.join(__dirname, '../public/interstitial.html'));
+    // Get blog post IDs
+    const postsDir = path.join(__dirname, '../public/posts');
+    const files = await fs.readdir(postsDir);
+    const postIds = files
+      .filter(file => file.endsWith('.html'))
+      .map(file => path.basename(file, '.html'));
+    
+    if (postIds.length === 0) {
+      return res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+    }
+    
+    // Select a random post
+    const randomPostId = postIds[Math.floor(Math.random() * postIds.length)];
+    
+    // Redirect to the blog post page with shortCode as query parameter
+    res.redirect(`/posts/${randomPostId}.html?shortCode=${shortCode}`);
   } catch (error) {
     console.error('Interstitial error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).sendFile(path.join(__dirname, '../public/404.html'));
   }
 });
 
