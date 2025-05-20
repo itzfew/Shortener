@@ -51,16 +51,16 @@ function startCountdown() {
 // Fetch original URL and handle "Get Link" click
 getLinkButton.addEventListener('click', async () => {
   try {
-    const response = await fetch(`/api/resolve/${shortCode}`);
-    const data = await response.json();
-    if (response.ok) {
-      window.location.href = data.originalUrl;
-    } else {
-      postContent.textContent = `Error: ${data.error}`;
-    }
-  } catch (error) {
-    postContent.textContent = 'Error: Could not connect to server';
+  const response = await fetch(`/api/resolve/${shortCode}`);
+  const data = await response.json();
+  if (response.ok) {
+    window.location.href = data.originalUrl;
+  } else {
+    postContent.textContent = `Error: ${data.error}`;
   }
+} catch (error) {
+  postContent.textContent = 'Error: Could not connect to server';
+}
 });
 
 // Add new API endpoint to resolve short code
