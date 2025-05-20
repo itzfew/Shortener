@@ -1,37 +1,56 @@
-// Sample posts for dynamic content
-const posts = [
-  "Discover the latest tech trends in 2025! AI is transforming industries.",
-  "Check out these amazing travel destinations for your next vacation.",
-  "Learn how to boost your productivity with these simple tips.",
-  "Stay updated with the latest news and insights from around the world."
-];
-
 let currentPage = 1;
 const totalPages = 4;
 let countdown = 10;
+let currentPost = null;
 
-const pageTitle = document.getElementById('page-title');
+const progress = document.getElementById('progress');
+const postTitle = document.getElementById('post-title');
+const postMeta = document.getElementById('post-meta');
+const postBody = document.getElementById('post-body');
+const nextButton = document.getElementById('next-button');
 const countdownDiv = document.getElementById('countdown');
-const postContent = document.getElementById('post-content');
+const instruction = document.getElementById('instruction');
+const continueButton = document.getElementById('continue-button');
 const getLinkButton = document.getElementById('get-link');
 
 // Get short code from URL
 const shortCode = window.location.pathname.substring(1);
 
-function updatePage() {
-  pageTitle.textContent = `Page ${currentPage} of ${totalPages}`;
-  postContent.textContent = posts[currentPage - 1];
-  countdownDiv.textContent = countdown;
-
-  if (currentPage === totalPages && countdown === 0) {
-    countdownDiv.style.display = 'none';
-    getLinkButton.style.display = 'block';
+async function fetchRandomPost() {
+  try {
+    const response = await fetch('/api/blog-posts/random');
+    const data = await response.json();
+    if (response.ok) {
+      currentPost = data;
+      postTitle.textContent = data.title;
+      postMeta.textContent = `By ${data.author} on ${data.date}`;
+      postBody.textContent = data.content;
+    } else {
+      postBody.textContent = `Error: ${data.error}`;
+      postBody.classList.add('error');
+    }
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    postBody.textContent = 'Error: Could not load blog post';
+    postBody.classList.add('error');
   }
+}
+
+function updatePage() {
+  progress.textContent = `You are currently on step ${currentPage}/${totalPages}`;
+  nextButton.style.display = 'block';
+  countdownDiv.style.display = 'none';
+  instruction.style.display = 'none';
+  continueButton.style.display = 'none';
+  getLinkButton.style.display = 'none';
+  fetchRandomPost();
 }
 
 function startCountdown() {
   countdown = 10;
   countdownDiv.textContent = countdown;
+  countdownDiv.style.display = 'block';
+  nextButton.style.display = 'none';
 
   const interval = setInterval(() => {
     countdown--;
@@ -39,57 +58,60 @@ function startCountdown() {
 
     if (countdown <= 0) {
       clearInterval(interval);
-      currentPage++;
-      if (currentPage <= totalPages) {
-        updatePage();
-        startCountdown();
-      } else {
-        updatePage();
-      }
+      instruction.style.display = 'block';
+      continueButton.style.display = currentPage < totalPages ? 'block' : 'none';
+      getLinkButton.style.display = currentPage === totalPages ? 'block' : 'none';
     }
   }, 1000);
 }
 
-// Fetch original URL and handle "Get Link" click
+nextButton.addEventListener('click', () => {
+  startCountdown();
+});
+
+continueButton.addEventListener('click', () => {
+  currentPage++;
+  if (currentPage <= totalPages) {
+    updatePage();
+  }
+});
+
 getLinkButton.addEventListener('click', async () => {
   try {
-    const response = await fetch(`/api/resolve/${shortCode}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await fetch(`/api/resolve/${shortCode}`);
     const data = await response.json();
     if (response.ok && data.originalUrl) {
       console.log(`Redirecting to ${data.originalUrl}`);
       window.location.href = data.originalUrl;
     } else {
-      postContent.textContent = `Error: ${data.error || 'Invalid response'}`;
-      postContent.classList.add('error');
+      postBody.textContent = `Error: ${data.error || 'Invalid response'}`;
+      postBody.classList.add('error');
     }
   } catch (error) {
     console.error('Error fetching original URL:', error);
-    postContent.textContent = 'Error: Could not connect to server';
-    postContent.classList.add('error');
+    postBody.textContent = 'Error: Could not connect to server';
+    postBody.classList.add('error');
   }
 });
 
-// Validate short code on page load
 async function validateShortCode() {
   try {
     const response = await fetch(`/api/resolve/${shortCode}`);
     const data = await response.json();
     if (!response.ok) {
-      postContent.textContent = `Error: ${data.error || 'Invalid short code'}`;
-      postContent.classList.add('error');
+      postBody.textContent = `Error: ${data.error || 'Invalid short code'}`;
+      postBody.classList.add('error');
       countdownDiv.style.display = 'none';
+      nextButton.style.display = 'none';
     } else {
       updatePage();
-      startCountdown();
     }
   } catch (error) {
     console.error('Error validating short code:', error);
-    postContent.textContent = 'Error: Could not connect to server';
-    postContent.classList.add('error');
+    postBody.textContent = 'Error: Could not connect to server';
+    postBody.classList.add('error');
     countdownDiv.style.display = 'none';
+    nextButton.style.display = 'none';
   }
 }
 
