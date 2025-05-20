@@ -1,4 +1,4 @@
-{ 
+{
   "version": 2,
   "builds": [
     {
@@ -16,27 +16,19 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/auth/(.*)",
+      "dest": "/public/auth/$1"
+    },
+    {
+      "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
+      "dest": "/public/$1"
+    },
+    {
       "src": "/([a-zA-Z0-9]{6})",
       "dest": "/public/interstitial.html"
     },
     {
-      "src": "/login",
-      "dest": "/public/login.html"
-    },
-    {
-      "src": "/signup",
-      "dest": "/public/signup.html"
-    },
-    {
-      "src": "/reset-password",
-      "dest": "/public/reset-password.html"
-    },
-    {
-      "src": "/(.*\\.(html|css|js))",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(index.html)?",
+      "src": "/",
       "dest": "/public/index.html"
     }
   ]
