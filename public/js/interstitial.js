@@ -1,3 +1,4 @@
+// public/js/interstitial.js
 let currentStep = 1;
 const totalSteps = 4;
 let countdown = 10;
@@ -8,12 +9,34 @@ const shortCode = window.location.pathname.substring(1);
 // DOM elements
 const currentStepEl = document.getElementById('current-step');
 const totalStepsEl = document.getElementById('total-steps');
+const stepsRemainingEl = document.getElementById('steps-remaining');
 const postTitleEl = document.getElementById('post-title');
 const postContentEl = document.getElementById('post-content');
 const countdownEl = document.getElementById('countdown');
+const countdownContainer = document.getElementById('countdown-container');
 const nextBtn = document.getElementById('next-btn');
 const continueBtn = document.getElementById('continue-btn');
 const getLinkBtn = document.getElementById('get-link-btn');
+
+// Curated blog posts
+const defaultPosts = [
+  {
+    title: "AI Revolution in 2025",
+    content: "Artificial Intelligence is reshaping industries in 2025. From advanced language models to autonomous vehicles, discover how AI is driving innovation and transforming our daily lives."
+  },
+  {
+    title: "Top 10 Dream Destinations",
+    content: "Explore breathtaking destinations for 2025! From the serene beaches of Bali to the majestic fjords of Norway, plan your next adventure with our curated list of must-visit places."
+  },
+  {
+    title: "Master Your Productivity",
+    content: "Boost your efficiency with proven techniques. Learn about time-blocking, the Pomodoro technique, and smart tools to maximize your productivity in work and life."
+  },
+  {
+    title: "Global Tech Innovations",
+    content: "Stay ahead with the latest tech breakthroughs. From quantum computing to sustainable energy solutions, explore innovations shaping a better future."
+  }
+];
 
 // Fetch blog posts
 async function fetchBlogPosts() {
@@ -22,17 +45,14 @@ async function fetchBlogPosts() {
     if (response.ok) {
       blogPosts = await response.json();
       if (blogPosts.length === 0) {
-        blogPosts = [
-          { title: "Tech Trends 2025", content: "Discover the latest tech trends in 2025! AI is transforming industries." },
-          { title: "Travel Destinations", content: "Check out these amazing travel destinations for your next vacation." },
-          { title: "Productivity Tips", content: "Learn how to boost your productivity with these simple tips." },
-          { title: "World News", content: "Stay updated with the latest news and insights from around the world." }
-        ];
+        blogPosts = defaultPosts;
       }
       updateBlogPost();
     }
   } catch (error) {
     console.error('Error fetching blog posts:', error);
+    blogPosts = defaultPosts;
+    updateBlogPost();
     postTitleEl.textContent = "Error";
     postContentEl.textContent = "Could not load blog posts. Please wait for your link.";
   }
@@ -41,32 +61,39 @@ async function fetchBlogPosts() {
 // Update blog post content
 function updateBlogPost() {
   if (blogPosts.length === 0) return;
-  
-  const postIndex = (currentStep - 1) % blogPosts.length;
+
+  const postIndex = Math.floor(Math.random() * blogPosts.length); // Random post
   const post = blogPosts[postIndex];
-  
+
   postTitleEl.textContent = post.title;
   postContentEl.textContent = post.content;
   currentStepEl.textContent = currentStep;
   totalStepsEl.textContent = totalSteps;
+  stepsRemainingEl.textContent = `${totalSteps - currentStep} steps remaining`;
 }
 
 // Start countdown
 function startCountdown() {
   countdown = 10;
   countdownEl.textContent = countdown;
-  
+  countdownContainer.classList.remove('hidden');
+  continueBtn.classList.add('hidden');
+
   clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
     countdown--;
     countdownEl.textContent = countdown;
-    
+
     if (countdown <= 0) {
       clearInterval(countdownInterval);
       if (currentStep < totalSteps) {
         nextBtn.textContent = "Next";
+        continueBtn.classList.remove('hidden');
+        continueBtn.textContent = "Please click to continue";
       } else {
         nextBtn.textContent = "Scroll down to continue";
+        getLinkBtn.classList.remove('hidden');
+        continueBtn.classList.add('hidden');
       }
     }
   }, 1000);
@@ -74,16 +101,10 @@ function startCountdown() {
 
 // Handle next button click
 nextBtn.addEventListener('click', () => {
-  if (countdown > 0) {
-    clearInterval(countdownInterval);
-    countdown = 0;
-    countdownEl.textContent = countdown;
-    nextBtn.textContent = currentStep < totalSteps ? "Next" : "Scroll down to continue";
-  } else if (currentStep < totalSteps) {
+  if (currentStep < totalSteps) {
     currentStep++;
     updateBlogPost();
     startCountdown();
-    nextBtn.textContent = "Next";
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
@@ -103,7 +124,7 @@ getLinkBtn.addEventListener('click', async () => {
   try {
     const response = await fetch(`/api/resolve/${shortCode}`);
     const data = await response.json();
-    
+
     if (response.ok) {
       window.location.href = data.originalUrl;
     } else {
@@ -119,12 +140,10 @@ getLinkBtn.addEventListener('click', async () => {
 // Initialize
 function init() {
   fetchBlogPosts();
-  startCountdown();
-  
-  // Show get link button on last step
+  countdownContainer.classList.add('hidden');
+  continueBtn.classList.add('hidden');
   if (currentStep === totalSteps) {
-    continueBtn.style.display = 'none';
-    getLinkBtn.style.display = 'block';
+    getLinkBtn.classList.remove('hidden');
   }
 }
 
